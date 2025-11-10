@@ -1,0 +1,60 @@
+#include <WiFi.h>
+
+// Your WiFi credentials
+const char* ssid = "ssid";
+const char* password = "password";
+
+WiFiServer server(80);  // Port 80 (HTTP)
+
+int ledPin = 23;  // You can use any GPIO pin
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+
+  Serial.println("Connecting to WiFi...");
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nWiFi connected!");
+  Serial.print("ESP32 IP Address: ");
+  Serial.println(WiFi.localIP());
+
+  server.begin();
+}
+
+void loop() {
+  WiFiClient client = server.available();
+
+  if (client) {
+    String request = client.readStringUntil('\r');
+    client.flush();
+
+    if (request.indexOf("/on") != -1) {
+      digitalWrite(ledPin, HIGH);
+      Serial.println("LED ON");
+    }
+    if (request.indexOf("/off") != -1) {
+      digitalWrite(ledPin, LOW);
+      Serial.println("LED OFF");
+    }
+
+    // Create a simple webpage
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-type:text/html");
+    client.println();
+    client.println("<html>");
+    client.println("<head><title>ESP32 Switch</title></head>");
+    client.println("<body style='text-align:center; font-family:Arial;'>");
+    client.println("<h1>ESP32 Online Switch</h1>");
+    client.println("<a href='/on'><button style='font-size:30px;'>ON</button></a>");
+    client.println("<a href='/off'><button style='font-size:30px;'>OFF</button></a>");
+    client.println("</body></html>");
+    client.println();
+  }
+}
